@@ -1,6 +1,8 @@
 from flask import (Flask, jsonify, request)
 from flask_pymongo import PyMongo 
 from pymongo import MongoClient
+from bson import Binary, Code
+from bson.json_util import dumps
 import os
 from synapsepy import Client
 
@@ -15,6 +17,9 @@ client = Client(
 
 app = Flask(__name__)
 
+db_client = MongoClient('mongodb://localhost:27017/')
+db = db_client['synapse_db']
+
 
 @app.route('/')
 def hello(): 
@@ -25,74 +30,77 @@ def hello():
 @app.route('/users', methods=['GET'])
 def get_all_users(): 
     """View all users."""
-    allusers = mongo.db.users.find()
+    allusers = db.synapse_db.users
 
     output = []
-    for users in allusers.find(): 
-        output.append({'name': users['name']})
+    for user in allusers.find(): 
+        output.append({
+            'email': user['email'],
+            'phone_numbers': user['phone_numbers'],
+            'legal_names': user['legal_names']
+            })
     
-    return jsonify({'result': output})
-    
-    
-    
-    # allusers = client.get_all_users(show_refresh_tokens=True)
-    # print(dir(allusers))
-    # print(allusers.list_of_users)
-    # users_list = []
-    
-    # for user in allusers.list_of_users: 
-
-    #     body = {
-    #         "_id": user.id,
-
-    #     }
-    #     print(user.id)
-
-    #     users_list.append(body)
-    
-    # print(users_list)
-    
-    # response = {
-    #     "limit": allusers.limit,
-    #     "page": allusers.page,
-    #     "page_count": allusers.page_count, 
-    #     "users": users_list
-    # }
-
-    # print(allusers.limit)
-    # print(allusers.page)
-    # print(allusers.page_count)
-    # return jsonify(response)
-        
+    return jsonify(dumps({'result': output}))
 
 
 @app.route('/users', methods=['POST'])
 def create_user():
     """Create a new user."""
 
-    # get all the feilds you need to create a new user 
-    # create the body 
-    # get the ip 
+    email = request.json['email']
+    phone_numbers = request.json['phone_numbers']
+    legal_names = request.json['legal_names']
 
-    new_user = client.create_user(body, ip, fingerprint=fingerprint)
+    body = {
+        "logins": [
+            {
+                "email": email
+            }
+        ],
+        "phone_numbers": [
+            phone_numbers
+        ],
+        "legal_names": [
+            legal_names
+        ]
+    }
 
+    new_user_synapse = client.create_user(body, ip=os.environ['IP_ADDRESS'], fingerprint=os.environ['FINGERPRINT'])
+    new_user_id = db.synapse_db.users.insert({
+        'email': email, 
+        "phone_numbers": phone_numbers, 
+        "legal_names": legal_names
+        })
+
+    new_user = db.synapse_db.users.find_one({'_id': new_user_id})
+    output = {
+        '_id': new_user['_id'], 
+        'email': new_user['email'], 
+        'phone_numbers': new_user['phone_numbers'], 
+        'legal_names': new_user['legal_names']
+        }
     
+    return jsonify(dumps({'result': output}))
 
-    # return response object, 201 
 
 @app.route('/users/<user_id>', methods=['GET'])
 def get_one_user(user_id):
     """View one user."""
-    allusers = mongo.db.users
-    user = allusers.find_one({'user_id': userid})
+    allusers = db.synapse_db.users
+    user = allusers.find_one({'_id': user_id})
 
     if user: 
-        output = {body}
+        output = {
+            '_id': user['_id'], 
+            'email': user['email'], 
+            'phone_numbers': user['phone_numbers'], 
+            'legal_names': user['legal_names']
+        }
 
     else: 
         output = "user does not exist" 
     
-    return jsonify({'result': output})
+    return jsonify(dumps({'result': output}))
 
 @app.route('/users/<user_id>', methods=['PUT'])
 def update_user(): 
@@ -102,11 +110,39 @@ def update_user():
 @app.route('/users/<user_id>', methods=['DELETE'])
 def delete_user(): 
     """Delete a user."""
-    pass 
+    
 
 # functionality 
 
-# link bank accounts 
+# link bank accounts to make transactions 
+
+@app.route('/accounts', methods=['POST'])
+def link_bank_accounts(): 
+    """Add a node to link a bank account."""
+    pass
+
+
+@app.route('/accounts/<node_id>', methods=['GET'])
+def view_bank_account(): 
+    """View added bank accounts."""
+    pass
+
+
+@app.route('/accounts/<node_id>/trans', methods=['POST'])
+def create_transaction():
+    """Create a new transaction."""
+    pass
+
+# open a deposit accout 
+
+
+
+
+
+
+
+# open an interest bearing account 
+
 
 
 
@@ -133,11 +169,9 @@ def delete_user():
 
 
 
+
+
 # wire money from app / to app 
-
-
-
-
 
 
 
@@ -147,19 +181,8 @@ def delete_user():
 
 
 
-
-
-
-
-
-def connect_to_db(app, db_name='synapse_db', db_uri='mongodb://localhost:27017/synapse_db'): 
-    app.config["MONGO_DBNAME"] = db_name
-    app.config["MONGO_URI"] = db_uri
-    mongo = PyMongo(app)
-
 if __name__ == "__main__": 
     app.debug = True 
-    connect_to_db(app)
-    app.run(port=5000, host='0.0.0.0')
+    app.run(port=5000, host='0.0.0.0', debug=True)
 
 
