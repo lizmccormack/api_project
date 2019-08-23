@@ -110,76 +110,117 @@ def update_user():
 @app.route('/users/<user_id>', methods=['DELETE'])
 def delete_user(): 
     """Delete a user."""
+    pass 
     
 
 # functionality 
 
 # link bank accounts to make transactions 
 
-@app.route('/accounts', methods=['POST'])
+@app.route('/users/<user_id>/links', methods=['POST'])
 def link_bank_accounts(): 
     """Add a node to link a bank account."""
     pass
 
 
-@app.route('/accounts/<node_id>', methods=['GET'])
+@app.route('/users/<user_id>/links/<node_id>', methods=['GET'])
 def view_bank_account(): 
     """View added bank accounts."""
     pass
 
 
-@app.route('/accounts/<node_id>/trans', methods=['POST'])
+@app.route('/users/<user_id>/links/<node_id>/trans', methods=['POST'])
 def create_transaction():
     """Create a new transaction."""
     pass
 
-# open a deposit accout 
+# open a synapse deposit accout as a checking or spending account 
+
+@app.route('/users/<user_id>/spending', methods=['POST'])
+def open_deposit_account(): 
+    """Create a spending account as a deposit account."""
+    pass 
+
+@app.route('/users/<user_id>/spending/<node_id>', methods=['GET'])
+def view_deposit_account():
+    """View spending account."""
+    pass 
+
+@app.route('/users/<user_id>/spending/<node_id>', methods=['PUT'])
+def update_deposit_account():
+    """Update spending account."""
+    pass 
+
+@app.route('/users/<user_id>/spending/<node_id>/trans', methods=['POST'])
+def fund_withdraw_spending_account():
+    """Funds or withdraws from deposit account.""" 
+    pass
+
+# open a synapse interest bearing account as a savings account 
+
+@app.route('users/<user_id>/savings', methods=['POST'])
+def open_savings_account(): 
+    """Create a savings account as an interest bearing account.""" 
+    pass 
+
+@app.route('users/<user_id>/savings/<node_id>', methods=['GET'])
+def view_savings_account(): 
+    """View savings account."""
+    pass 
+
+@app.route('users/<user_id>/savings/<node_id>', method=['PUT'])
+def update_savings_account(): 
+    """Update savings account."""
+    pass 
+
+@app.route('/users/<user_id>/savings/<node_id>/trans', methods=['POST'])
+def fund_withdraw_savings_account():
+    """Funds or withdraws from savings account.""" 
+    pass
+
+# open a subnet / issue debit card (for your deposit account)
+
+@app.route('/users/<user_id>/spending/<node_id>/cards', methods=['POST'])
+def create_card_number():
+    """Create a new card number."""
+    pass
+
+@app.route('/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['PUT'])
+def update_card_statu():
+    """Activate, deactivate or terminate card."""
+    pass 
+
+@app.route('/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['PATCH'])
+def update_card_pin():
+    """Set the card pin."""
+    pass 
+
+@app.route('/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['GET'])
+def view_card(): 
+    """View card."""
+    pass 
+
+@app.route('/users/<user_id>/spending/<node_id>/cards/<card_id>/send', methods=['POST'])
+def send_card():
+    """Send physical card."""
+    pass 
+
+
+
+@app.route('/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['DELETE'])
+def delete_card():
+    """Delete card."""
+    pass 
+
+
+# make statements round up to the nearest dollar and add to savings 
 
 
 
 
 
 
-
-# open an interest bearing account 
-
-
-
-
-
-
-
-# open a subnet / issue debit card 
-
-
-
-
-
-
-# view statements 
-
-
-
-
-
-
-# transactions 
-
-
-
-
-
-
-
-# wire money from app / to app 
-
-
-
-
-# loans 
-
-
-
+# helper functions 
 
 if __name__ == "__main__": 
     app.debug = True 
