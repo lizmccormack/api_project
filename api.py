@@ -30,6 +30,7 @@ def hello():
 @app.route('/users', methods=['GET'])
 def get_all_users(): 
     """View all users."""
+    
     allusers = db.synapse_db.users
 
     output = []
@@ -86,6 +87,7 @@ def create_user():
 @app.route('/users/<user_id>', methods=['GET'])
 def get_one_user(user_id):
     """View one user."""
+    
     allusers = db.synapse_db.users
     user = allusers.find_one({'_id': user_id})
 
@@ -115,13 +117,14 @@ def delete_user():
 
 # functionality 
 
-# link bank accounts to make transactions 
+# link bank accounts to make transactions / transfer funds 
 
 @app.route('/users/<user_id>/links', methods=['POST'])
 def link_bank_accounts(): 
     """Add a node to link a bank account."""
+    
     type_ = request.json['type']
-    bank_id = request.json['bank_id]
+    bank_id = request.json['bank_id']
     bank_pw= request.json['bank_pw']
     bank_name = request.json['bank_name']
 
@@ -169,46 +172,110 @@ def create_transaction():
 # open a synapse deposit accout as a checking or spending account 
 
 @app.route('/users/<user_id>/spending', methods=['POST'])
-def open_deposit_account(): 
+def open_spending_account(): 
     """Create a spending account as a deposit account."""
-    pass 
+    
+    type_ = request.json["type"]
+    nickname = request.json["nickname"]
+    document_id = request.json["document_id"]
+
+    user = client.get_user(user_id)
+    user.create_node(body, idempotency_key='123456')
+
+    # add to database 
+
+
 
 @app.route('/users/<user_id>/spending/<node_id>', methods=['GET'])
 def view_deposit_account():
     """View spending account."""
-    pass 
+    
+    user = client.get_user(user_id)
+    node = user.get_node(node_id)  
 
-@app.route('/users/<user_id>/spending/<node_id>', methods=['PUT'])
-def update_deposit_account():
-    """Update spending account."""
-    pass 
+    # return json response
 
 @app.route('/users/<user_id>/spending/<node_id>/trans', methods=['POST'])
 def fund_withdraw_spending_account():
     """Funds or withdraws from deposit account.""" 
-    pass
+
+    to_type = request.json['type']
+    to_id = request.json["id"]
+    amount = reuqest.json["amount"]
+    amount_currency = request.json["currency"]
+    ip = request.json["ip"]
+    note = request.json["note"]
+
+    body = {
+        "to": {
+            "type": to_type, 
+            "id": to_id
+        }, 
+        "amount": {
+            "amount": amount,
+            "currency": amount_currency   
+        },
+        "extra": {
+            "ip": ip,
+            "note": note
+        }
+    }
+
+    
+    user = client.get_user(user_id)
+    user_spending_trans = user.create_trans(node_id, body)
+
+    # return json reponse
 
 # open a synapse interest bearing account as a savings account 
 
 @app.route('users/<user_id>/savings', methods=['POST'])
 def open_savings_account(): 
     """Create a savings account as an interest bearing account.""" 
-    pass 
+    
+    type_ = request.json["type"]
+    nickname = request.json["nickname"]
+
+    body = {
+        "type": type_,
+        "info": {
+            "nickname": nickname
+        }
+    }
+
+    user = client.get_user(user_id)
+    user_savings_node = user.create_node(body)
+
+    # add to database 
+    # return request kasfj
 
 @app.route('users/<user_id>/savings/<node_id>', methods=['GET'])
 def view_savings_account(): 
     """View savings account."""
-    pass 
+    
+    user = client.get_user(user_id) 
+    user.get_user_node(node_id)
 
-@app.route('users/<user_id>/savings/<node_id>', method=['PUT'])
-def update_savings_account(): 
-    """Update savings account."""
-    pass 
+    # return json response 
+
 
 @app.route('/users/<user_id>/savings/<node_id>/trans', methods=['POST'])
 def fund_withdraw_savings_account():
     """Funds or withdraws from savings account.""" 
-    pass
+
+    to_type: request.json["type"]
+    to_id: request.json["id"]
+    amount: request.json["amount"]
+    currency: request.json["currency"]
+    ip: reuqest.json["ip"]
+    note: request.json["note"]
+
+    user = client.get_user(user_id)
+    user_savings_trans = user.create_trans(node_id, body)
+
+    # add to transactions db 
+    # return something 
+
 
 # open a subnet / issue debit card (for your deposit account)
 
@@ -236,7 +303,6 @@ def view_card():
 def send_card():
     """Send physical card."""
     pass 
-
 
 
 @app.route('/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['DELETE'])
