@@ -120,19 +120,51 @@ def delete_user():
 @app.route('/users/<user_id>/links', methods=['POST'])
 def link_bank_accounts(): 
     """Add a node to link a bank account."""
-    pass
+    type_ = request.json['type']
+    bank_id = request.json['bank_id]
+    bank_pw= request.json['bank_pw']
+    bank_name = request.json['bank_name']
+
+    body = {
+        "type": type_,
+        "info": {
+            "bank_id": bank_id,
+            "bank_pw": bank_pw,
+            "bank_name": bank_name
+        }
+    }
+
+    user = client.get_user(user_id)
+    node = user.create_node(body)
+    
+    # add it to the data base 
 
 
 @app.route('/users/<user_id>/links/<node_id>', methods=['GET'])
 def view_bank_account(): 
     """View added bank accounts."""
-    pass
+    
+    user = client.get_user(user_id)
+    node = user.get_node(node_id) 
+    
+    #return json response 
 
 
 @app.route('/users/<user_id>/links/<node_id>/trans', methods=['POST'])
 def create_transaction():
     """Create a new transaction."""
-    pass
+    
+    to_type = request.json["to_type"]
+    to_id = request.json["to_id"]
+    amount = request.json["amount"]
+    amount_currency = request.json["currency"]
+    ip = request.json["ip"]
+
+    user = client.get_user(user_id)
+    user.create_trans(node_id, body)
+
+    # return json response 
+
 
 # open a synapse deposit accout as a checking or spending account 
 
@@ -214,10 +246,6 @@ def delete_card():
 
 
 # make statements round up to the nearest dollar and add to savings 
-
-
-
-
 
 
 # helper functions 
