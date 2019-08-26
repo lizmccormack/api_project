@@ -96,16 +96,6 @@ def get_one_user(user_id):
     
     return jsonify(dumps({'result': output}))
 
-@app.route('/users/<user_id>', methods=['PUT'])
-def update_user(user_id): 
-    """Update one user."""
-    pass 
-
-@app.route('/users/<user_id>', methods=['DELETE'])
-def delete_user(user_id): 
-    """Delete a user."""
-    pass 
-
 
 # link bank accounts to make transactions / transfer funds 
 
@@ -128,11 +118,18 @@ def link_bank_accounts(user_id):
     }
 
     user = client.get_user(user_id)
-    node = user.create_node(body)
-    response = json.dumps(node)
 
-    new_link = db.synapse_db.links.insert(response) 
+    if user: 
+        node = user.create_node(body)
+        response = json.dumps(node)
+        db.synapse_db.links.insert(response) 
     
+    else: 
+        
+        response = {
+            'status_code': 404 
+        }
+        s
     return jsonify(dumps({"result": response}))
 
 
@@ -166,9 +163,17 @@ def create_transaction(user_id, node_id):
     ip = request.json["ip"]
 
     user = client.get_user(user_id)
-    transaction = user.create_trans(node_id, body)
 
-    response = json.dump(transaction)
+    if user: 
+
+        transaction = user.create_trans(node_id, body)
+        response = json.dump(transaction)
+        db.synapse_db.link_trans.insert(response)
+
+    else: 
+        response = {
+            'status_code': 404 
+        } 
 
     return jsonify(dumps({"result": response})) 
 
@@ -184,14 +189,20 @@ def open_spending_account(user_id):
     document_id = request.json["document_id"]
 
     user = client.get_user(user_id)
-    user_spending_node = user.create_node(body, idempotency_key='123456')
-    response = json.dumps(user_spending_node)
 
-    new_spending = db.synapse_db.spending.insert(response) 
+    if user: 
 
-    return jsonify(dumps{"result": response})
+        user_spending_node = user.create_node(body, idempotency_key='123456')
+        response = json.dumps(user_spending_node)
+        db.synapse_db.spending.insert(response) 
+    
+    else:
 
+        response = {
+            'status_code': 404 
+        } 
 
+    return jsonify(dumps({"result": response}))
 
 @app.route('/v1/users/<user_id>/spending/<node_id>', methods=['GET'])
 def view_deposit_account(user_id, node_id):
@@ -237,14 +248,20 @@ def fund_withdraw_spending_account(user_id, node_id):
         }
     }
 
-    
     user = client.get_user(user_id)
-    user_spending_trans = user.create_trans(node_id, body)
-    response = json.dumps(user_spending_trans)
 
-    new_spending_transaction = db.synapse_db.spending_trans.insert(response)
+    if user:     
+    
+        user_spending_trans = user.create_trans(node_id, body)
+        response = json.dumps(user_spending_trans)
+        db.synapse_db.spending_trans.insert(response)
+    
+    else 
+        response = {
+            "status_code": 404
+        }
 
-    return jsonfiy(dumps("result": response))
+    return jsonfiy(dumps({"result": response}))
 
 
 # open a synapse interest bearing account as a savings account 
@@ -264,12 +281,20 @@ def open_savings_account(user_id):
     }
 
     user = client.get_user(user_id)
-    user_savings_node = user.create_node(body)
 
-    new_savings= db.synapse_db.spending_trans.insert(user_savings_node)
-    response = json.dumps(user_savings_node)
+    if user: 
+
+        user_savings_node = user.create_node(body)
+        response = json.dumps(user_savings_node)
+        db.synapse_db.spending_trans.insert(response)
     
-    return jsonfiy(dumps("result": response))
+    else: 
+
+        response = {
+            "status_code": 404
+        }
+    
+    return jsonfiy(dumps({"result": response}))
 
 @app.route('/v1/users/<user_id>/savings/<node_id>', methods=['GET'])
 def view_savings_account(user_id, node_id): 
@@ -283,6 +308,7 @@ def view_savings_account(user_id, node_id):
         response = json.dumps(node_view)
     
     else: 
+
         response = {
             'status_code': 404 
         }
@@ -301,12 +327,20 @@ def fund_withdraw_savings_account(user_id, node_id):
     note = request.json["note"]
 
     user = client.get_user(user_id)
-    user_savings_trans = user.create_trans(node_id, body)
-    response = json.dumps(user_savings_trans)
 
-    new_savings_transaction = db.synapse_db.saving_trans.insert(response)
+    if user: 
 
-    return jsonfiy(dumps("result": response))
+        user_savings_trans = user.create_trans(node_id, body)
+        response = json.dumps(user_savings_trans)
+        db.synapse_db.saving_trans.insert(response)
+    
+    else: 
+
+        response = {
+            "status_code": 404
+        }
+
+    return jsonfiy(dumps({"result": response}))
 
 
 # open a subnet / issue debit card (for your deposit account)
@@ -319,10 +353,20 @@ def create_card_number(user_id, node_id, card_id):
     account_class = request.json["account_class"]
 
     user = client.get_user(user_id)
-    user_card_number = create_subnet(node_id, body)
 
-    # add to database 
-    return jsonfiy(dumps("result": response))
+    if user: 
+    
+        user_card_number = create_subnet(node_id, body)
+        response = json.dumps(user_card_number)
+        db.synapse_db.new_cards.insert(response)
+    
+    else: 
+
+        response = {
+            "status_code": 404
+        }
+
+    return jsonfiy(dumps({"result": response}))
 
 
 @app.route('/v1/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['PUT'])
@@ -335,10 +379,21 @@ def update_card_status(user_id, node_id, card_id):
     daily_transaction_limit = request.json["daily_transaction_limit"]
 
     user = client.get_user(user_id)
-    user_card_status = user.update_subnet(node_id, subnet_id, body)
+    
+    if user: 
 
-    # update database 
-    return jsonfiy(dumps("result": response))
+        user_card_status = user.update_subnet(node_id, subnet_id, body)
+        response = json.dumps(user_card_status)
+        db.synapse_db.new_cards.insert(response) # change this 
+
+    else: 
+        
+        response = {
+            "status_code": 404
+        }
+
+
+    return jsonfiy(dumps({"result": response}))
 
 @app.route('/v1/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['PATCH'])
 def update_card_pin(user_id, node_id, card_id):
@@ -351,10 +406,21 @@ def update_card_pin(user_id, node_id, card_id):
     }
 
     user = client.get_user(user_id) 
-    user_pin_update = user.update_subnet(node_id, subnet_id, body)
 
-    # add to database 
-    return jsonfiy(dumps("result": response))
+    if user: 
+
+        user_pin_update = user.update_subnet(node_id, subnet_id, body)
+        response = json.dumps(user_pin_update)
+        db.synapse_db.new_cards.insert(response) # change this 
+    
+    else: 
+        
+        response = {
+            "status_code": 404
+        }
+
+
+    return jsonfiy(dumps({"result": response}))
 
 @app.route('/v1/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['GET'])
 def view_card(user_id, node_id, card_id): 
@@ -373,10 +439,19 @@ def send_card(user_id, node_id, card_id):
     cardholder_name = request.json["cardholder_name"]
 
     user = client.get_uer(user_id)
-    user_send_card = user.ship_card(node_id, card_id, body)
+    if user: 
+        
+        user_send_card = user.ship_card(node_id, card_id, body)
+        response = json.dumps(user_send_card)
+        db.synapse_db.new_cards.insert(response)
 
-    # response that it is being sent 
-    return jsonfiy(dumps("result": response))
+    else: 
+
+        response = {
+            "status_code": 404
+        }
+
+    return jsonfiy(dumps({"result": response}))
 
 
 @app.route('/v1/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['DELETE'])
@@ -393,7 +468,7 @@ def delete_card(user_id, node_id, card_id):
     user_delete_card = user.update_subnet(node_id, card_id, body)
 
     # return sucess message 
-    return jsonfiy(dumps("result": response))
+    return jsonfiy(dumps({"result": response}))
 
 
 # transactions 
@@ -403,18 +478,40 @@ def view_user_transactions(user_id):
     """View transactions for a user.""" 
 
     user = client.get_user(user_id)
-    transactions = user.get_all_trans()
+    
+    if user: 
 
-   return jsonfiy(dumps("result": response)) 
+        transactions = user.get_all_trans()
+        response = json.dumps(transactions)
+    
+    else: 
+
+        response = {
+            "status_code": 404
+        }
+
+
+    return jsonfiy(dumps({"result": response})) 
 
 @app.route('/v1/users/<user_id>/nodes/<node_id>/trans')
 def view_account_transactions(user_id, node_id): 
     """View transactions for an account."""
 
     user = client.get_user(user_id)
-    transactions = user.get_all_node_trans(node_id, page=4, per_page=10)
+    
+    if user: 
 
-    return jsonfiy(dumps("result": response))
+        transactions = user.get_all_node_trans(node_id, page=4, per_page=10)
+        response = json.dumps(transactions)
+    
+    else: 
+
+        response = {
+            "status_code": 404
+        }
+
+
+    return jsonfiy(dumps({"result": response}))
 
 
 # helper functions 
