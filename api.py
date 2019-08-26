@@ -3,16 +3,17 @@ from flask_pymongo import PyMongo
 from pymongo import MongoClient
 from bson import Binary, Code
 from bson.json_util import dumps
+import json 
 import os
 from synapsepy import Client
 
 client = Client(
-    client_id= os.environ['CLIENT_ID'], # your client id
-    client_secret= os.environ['CLIENT_SECRET'], # your client secret
+    client_id= os.environ['CLIENT_ID'], 
+    client_secret= os.environ['CLIENT_SECRET'], 
     fingerprint= os.environ['FINGERPRINT'],
-    ip_address= os.environ['IP_ADDRESS'], # user's IP
-    devmode= True, # (optional) default False
-    logging= False # (optional) logs to stdout if True
+    ip_address= os.environ['IP_ADDRESS'], 
+    devmode= True, 
+    logging= False 
 )
 
 app = Flask(__name__)
@@ -21,13 +22,8 @@ db_client = MongoClient('mongodb://localhost:27017/')
 db = db_client['synapse_db']
 
 
-@app.route('/')
-def hello(): 
-    """TEST"""
-    return 'welcome to my api'
-
 # Users 
-@app.route('/users', methods=['GET'])
+@app.route('/v1/users', methods=['GET'])
 def get_all_users(): 
     """View all users."""
     
@@ -44,7 +40,7 @@ def get_all_users():
     return jsonify(dumps({'result': output}))
 
 
-@app.route('/users', methods=['POST'])
+@app.route('/v1/users', methods=['POST'])
 def create_user():
     """Create a new user."""
 
@@ -67,29 +63,25 @@ def create_user():
     }
 
     new_user_synapse = client.create_user(body, ip=os.environ['IP_ADDRESS'], fingerprint=os.environ['FINGERPRINT'])
-    new_user_id = db.synapse_db.users.insert({
+    new_user = db.synapse_db.users.insert({
+        'user_id': new_user_synapse.id,
         'email': email, 
         "phone_numbers": phone_numbers, 
         "legal_names": legal_names
         })
 
-    new_user = db.synapse_db.users.find_one({'_id': new_user_id})
-    output = {
-        '_id': new_user['_id'], 
-        'email': new_user['email'], 
-        'phone_numbers': new_user['phone_numbers'], 
-        'legal_names': new_user['legal_names']
-        }
-    
+    new_user = db.synapse_db.users.find_one({'user_id': new_user.id})
+    output = json.dumps(new_user)
+
     return jsonify(dumps({'result': output}))
 
 
-@app.route('/users/<user_id>', methods=['GET'])
+@app.route('/v1/users/<user_id>', methods=['GET'])
 def get_one_user(user_id):
     """View one user."""
     
     allusers = db.synapse_db.users
-    user = allusers.find_one({'_id': user_id})
+    user = allusers.find_one({'user_id': user_id})
 
     if user: 
         output = {
@@ -105,22 +97,20 @@ def get_one_user(user_id):
     return jsonify(dumps({'result': output}))
 
 @app.route('/users/<user_id>', methods=['PUT'])
-def update_user(): 
+def update_user(user_id): 
     """Update one user."""
     pass 
 
 @app.route('/users/<user_id>', methods=['DELETE'])
-def delete_user(): 
+def delete_user(user_id): 
     """Delete a user."""
     pass 
-    
 
-# functionality 
 
 # link bank accounts to make transactions / transfer funds 
 
-@app.route('/users/<user_id>/links', methods=['POST'])
-def link_bank_accounts(): 
+@app.route('/v1/users/<user_id>/links', methods=['POST'])
+def link_bank_accounts(user_id): 
     """Add a node to link a bank account."""
     
     type_ = request.json['type']
@@ -139,22 +129,34 @@ def link_bank_accounts():
 
     user = client.get_user(user_id)
     node = user.create_node(body)
+    response = json.dumps(node)
+
+    new_link = db.synapse_db.links.insert(response) 
     
-    # add it to the data base 
+    return jsonify(dumps({"result": response}))
 
 
-@app.route('/users/<user_id>/links/<node_id>', methods=['GET'])
-def view_bank_account(): 
+@app.route('/v1/users/<user_id>/links/<node_id>', methods=['GET'])
+def view_bank_account(user_id, node_id): 
     """View added bank accounts."""
-    
+
     user = client.get_user(user_id)
-    node = user.get_node(node_id) 
     
-    #return json response 
+    if user: 
+    
+        node = user.get_node(node_id) 
+        response = json.dumps(node)
+    
+    else: 
+        response = {
+            'status_code': 404 
+        }
+
+    return jsonify(dumps({"result": response}))
 
 
-@app.route('/users/<user_id>/links/<node_id>/trans', methods=['POST'])
-def create_transaction():
+@app.route('/v1/users/<user_id>/links/<node_id>/trans', methods=['POST'])
+def create_transaction(user_id, node_id):
     """Create a new transaction."""
     
     to_type = request.json["to_type"]
@@ -164,15 +166,17 @@ def create_transaction():
     ip = request.json["ip"]
 
     user = client.get_user(user_id)
-    user.create_trans(node_id, body)
+    transaction = user.create_trans(node_id, body)
 
-    # return json response 
+    response = json.dump(transaction)
+
+    return jsonify(dumps({"result": response})) 
 
 
 # open a synapse deposit accout as a checking or spending account 
 
-@app.route('/users/<user_id>/spending', methods=['POST'])
-def open_spending_account(): 
+@app.route('/v1/users/<user_id>/spending', methods=['POST'])
+def open_spending_account(user_id): 
     """Create a spending account as a deposit account."""
     
     type_ = request.json["type"]
@@ -180,23 +184,35 @@ def open_spending_account():
     document_id = request.json["document_id"]
 
     user = client.get_user(user_id)
-    user.create_node(body, idempotency_key='123456')
+    user_spending_node = user.create_node(body, idempotency_key='123456')
+    response = json.dumps(user_spending_node)
 
-    # add to database 
+    new_spending = db.synapse_db.spending.insert(response) 
+
+    return jsonify(dumps{"result": response})
 
 
 
-@app.route('/users/<user_id>/spending/<node_id>', methods=['GET'])
-def view_deposit_account():
+@app.route('/v1/users/<user_id>/spending/<node_id>', methods=['GET'])
+def view_deposit_account(user_id, node_id):
     """View spending account."""
-    
+
     user = client.get_user(user_id)
-    node = user.get_node(node_id)  
 
-    # return json response
+    if user: 
+    
+        node = user.get_node(node_id) 
+        response = json.dumps(node)
+    
+    else: 
+        response = {
+            'status_code': 404 
+        }
 
-@app.route('/users/<user_id>/spending/<node_id>/trans', methods=['POST'])
-def fund_withdraw_spending_account():
+    return jsonify(dumps({"result": response}))
+
+@app.route('/v1/users/<user_id>/spending/<node_id>/trans', methods=['POST'])
+def fund_withdraw_spending_account(user_id, node_id):
     """Funds or withdraws from deposit account.""" 
 
     to_type = request.json['type']
@@ -224,13 +240,17 @@ def fund_withdraw_spending_account():
     
     user = client.get_user(user_id)
     user_spending_trans = user.create_trans(node_id, body)
+    response = json.dumps(user_spending_trans)
 
-    # return json reponse
+    new_spending_transaction = db.synapse_db.spending_trans.insert(response)
+
+    return jsonfiy(dumps("result": response))
+
 
 # open a synapse interest bearing account as a savings account 
 
-@app.route('users/<user_id>/savings', methods=['POST'])
-def open_savings_account(): 
+@app.route('/v1/users/<user_id>/savings', methods=['POST'])
+def open_savings_account(user_id): 
     """Create a savings account as an interest bearing account.""" 
     
     type_ = request.json["type"]
@@ -246,72 +266,155 @@ def open_savings_account():
     user = client.get_user(user_id)
     user_savings_node = user.create_node(body)
 
-    # add to database 
-    # return request kasfj
-
-@app.route('users/<user_id>/savings/<node_id>', methods=['GET'])
-def view_savings_account(): 
-    """View savings account."""
+    new_savings= db.synapse_db.spending_trans.insert(user_savings_node)
+    response = json.dumps(user_savings_node)
     
-    user = client.get_user(user_id) 
-    user.get_user_node(node_id)
+    return jsonfiy(dumps("result": response))
 
-    # return json response 
+@app.route('/v1/users/<user_id>/savings/<node_id>', methods=['GET'])
+def view_savings_account(user_id, node_id): 
+    """View savings account."""
 
+    user = client.get_user(user_id)
 
-@app.route('/users/<user_id>/savings/<node_id>/trans', methods=['POST'])
-def fund_withdraw_savings_account():
+    if user: 
+    
+        node_view = user.get_user_node(node_id)
+        response = json.dumps(node_view)
+    
+    else: 
+        response = {
+            'status_code': 404 
+        }
+
+    return jsonify(dumps({"result": response}))
+
+@app.route('/v1/users/<user_id>/savings/<node_id>/trans', methods=['POST'])
+def fund_withdraw_savings_account(user_id, node_id):
     """Funds or withdraws from savings account.""" 
 
-    to_type: request.json["type"]
-    to_id: request.json["id"]
-    amount: request.json["amount"]
-    currency: request.json["currency"]
-    ip: reuqest.json["ip"]
-    note: request.json["note"]
+    to_type = request.json["type"]
+    to_id = request.json["id"]
+    amount = request.json["amount"]
+    currency = request.json["currency"]
+    ip = reuqest.json["ip"]
+    note = request.json["note"]
 
     user = client.get_user(user_id)
     user_savings_trans = user.create_trans(node_id, body)
+    response = json.dumps(user_savings_trans)
 
-    # add to transactions db 
-    # return something 
+    new_savings_transaction = db.synapse_db.saving_trans.insert(response)
+
+    return jsonfiy(dumps("result": response))
 
 
 # open a subnet / issue debit card (for your deposit account)
 
-@app.route('/users/<user_id>/spending/<node_id>/cards', methods=['POST'])
-def create_card_number():
+@app.route('/v1/users/<user_id>/spending/<node_id>/cards', methods=['POST'])
+def create_card_number(user_id, node_id, card_id):
     """Create a new card number."""
-    pass
+    
+    nickname = request.json["nickname"]
+    account_class = request.json["account_class"]
 
-@app.route('/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['PUT'])
-def update_card_statu():
+    user = client.get_user(user_id)
+    user_card_number = create_subnet(node_id, body)
+
+    # add to database 
+    return jsonfiy(dumps("result": response))
+
+
+@app.route('/v1/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['PUT'])
+def update_card_status(user_id, node_id, card_id):
     """Activate, deactivate or terminate card."""
-    pass 
+    
+    status = request.json["status"]
+    allow_foreign_transactions = request.json["allow_foreign_transactions"]
+    daily_atm_withdrawal = request.json["daily_atm_withdrawal"]
+    daily_transaction_limit = request.json["daily_transaction_limit"]
 
-@app.route('/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['PATCH'])
-def update_card_pin():
+    user = client.get_user(user_id)
+    user_card_status = user.update_subnet(node_id, subnet_id, body)
+
+    # update database 
+    return jsonfiy(dumps("result": response))
+
+@app.route('/v1/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['PATCH'])
+def update_card_pin(user_id, node_id, card_id):
     """Set the card pin."""
-    pass 
+    
+    card_pin = request.json["card_pin"] # need to add encryption 
 
-@app.route('/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['GET'])
-def view_card(): 
+    body = {
+        "card_pin": card_pin
+    }
+
+    user = client.get_user(user_id) 
+    user_pin_update = user.update_subnet(node_id, subnet_id, body)
+
+    # add to database 
+    return jsonfiy(dumps("result": response))
+
+@app.route('/v1/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['GET'])
+def view_card(user_id, node_id, card_id): 
     """View card."""
-    pass 
+    
+    user = client.get_user(user_id)
+    user_card = user.get_subnet(node_id, subnet_id)
 
-@app.route('/users/<user_id>/spending/<node_id>/cards/<card_id>/send', methods=['POST'])
-def send_card():
+@app.route('/v1/users/<user_id>/spending/<node_id>/cards/<card_id>/send', methods=['POST'])
+def send_card(user_id, node_id, card_id):
     """Send physical card."""
-    pass 
+    
+    fee_node_id = request.json["fee_node_id"]
+    expedite = request.json["expedite"]
+    card_style_id = request.json["card_style_id"]
+    cardholder_name = request.json["cardholder_name"]
+
+    user = client.get_uer(user_id)
+    user_send_card = user.ship_card(node_id, card_id, body)
+
+    # response that it is being sent 
+    return jsonfiy(dumps("result": response))
 
 
-@app.route('/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['DELETE'])
-def delete_card():
+@app.route('/v1/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['DELETE'])
+def delete_card(user_id, node_id, card_id):
     """Delete card."""
-    pass 
+    
+    status = request.json["status"]
+
+    body = {
+        "status": status 
+    }
+
+    user = client.get_user(user_id) 
+    user_delete_card = user.update_subnet(node_id, card_id, body)
+
+    # return sucess message 
+    return jsonfiy(dumps("result": response))
 
 
-# make statements round up to the nearest dollar and add to savings 
+# transactions 
+
+@app.route('/v1/users/<user_id>/trans', methods=['GET'])
+def view_user_transactions(user_id): 
+    """View transactions for a user.""" 
+
+    user = client.get_user(user_id)
+    transactions = user.get_all_trans()
+
+   return jsonfiy(dumps("result": response)) 
+
+@app.route('/v1/users/<user_id>/nodes/<node_id>/trans')
+def view_account_transactions(user_id, node_id): 
+    """View transactions for an account."""
+
+    user = client.get_user(user_id)
+    transactions = user.get_all_node_trans(node_id, page=4, per_page=10)
+
+    return jsonfiy(dumps("result": response))
 
 
 # helper functions 
