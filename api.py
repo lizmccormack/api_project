@@ -205,7 +205,7 @@ def open_spending_account(user_id):
     return jsonify(dumps({"result": response}))
 
 @app.route('/v1/users/<user_id>/spending/<node_id>', methods=['GET'])
-def view_deposit_account(user_id, node_id):
+def view_spending_account(user_id, node_id):
     """View spending account."""
 
     user = client.get_user(user_id)
@@ -384,7 +384,7 @@ def update_card_status(user_id, node_id, card_id):
 
         user_card_status = user.update_subnet(node_id, subnet_id, body)
         response = json.dumps(user_card_status)
-        db.synapse_db.new_cards.insert(response) # change this 
+        db.synapse_db.new_cards.update(response)  
 
     else: 
         
@@ -399,7 +399,7 @@ def update_card_status(user_id, node_id, card_id):
 def update_card_pin(user_id, node_id, card_id):
     """Set the card pin."""
     
-    card_pin = request.json["card_pin"] # need to add encryption 
+    card_pin = request.json["card_pin"]  
 
     body = {
         "card_pin": card_pin
@@ -411,7 +411,7 @@ def update_card_pin(user_id, node_id, card_id):
 
         user_pin_update = user.update_subnet(node_id, subnet_id, body)
         response = json.dumps(user_pin_update)
-        db.synapse_db.new_cards.insert(response) # change this 
+        db.synapse_db.new_cards.update(response) 
     
     else: 
         
@@ -425,9 +425,22 @@ def update_card_pin(user_id, node_id, card_id):
 @app.route('/v1/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['GET'])
 def view_card(user_id, node_id, card_id): 
     """View card."""
+
+        user = client.get_user(user_id)
     
-    user = client.get_user(user_id)
-    user_card = user.get_subnet(node_id, subnet_id)
+    if user: 
+
+        user_card = user.get_subnet(node_id, subnet_id)
+        response = json.dumps(user_card)
+    
+    else: 
+
+        response = {
+            "status_code": 404
+        }
+
+    return jsonfiy(dumps({"result": response})) 
+
 
 @app.route('/v1/users/<user_id>/spending/<node_id>/cards/<card_id>/send', methods=['POST'])
 def send_card(user_id, node_id, card_id):
@@ -465,9 +478,19 @@ def delete_card(user_id, node_id, card_id):
     }
 
     user = client.get_user(user_id) 
-    user_delete_card = user.update_subnet(node_id, card_id, body)
 
-    # return sucess message 
+    if user: 
+        
+        user_delete_card = user.update_subnet(node_id, card_id, body)
+        response = json.dumps(user_delete_card)
+        db.synapse_db.new_cards.update(response)
+    
+    else: 
+
+        response = {
+            "status_code": 404
+        }
+    
     return jsonfiy(dumps({"result": response}))
 
 
