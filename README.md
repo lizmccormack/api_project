@@ -27,7 +27,7 @@ idea that everyone should be able to manage their money easily.
 * view savings account 
 * fund or withdraw from savings account 
 
-## new chime card 
+## New chime card 
 
 * create new card number 
 * update card status - activate, deactivate, terminate 
