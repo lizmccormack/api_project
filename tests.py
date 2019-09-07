@@ -11,6 +11,7 @@ from flask import (Flask, jsonify, request)
 db_client = MongoClient('mongodb://localhost:27017/')
 db = db_client['test_db']
 
+
 class TestUser(unittest.TestCase): 
     """Test API calls for user."""
 
@@ -58,6 +59,7 @@ class TestUser(unittest.TestCase):
         user_id = results.user_id 
         results = self.app.get(f'/v1/users{user_id}')
         self.assertEqual(results.status_code, 200)
+
 
 class TestLinkAccounts(uniitest.TestCase): 
     """Test API calls for link accounts.""" 
@@ -107,6 +109,7 @@ class TestLinkAccounts(uniitest.TestCase):
                                 data={to_type...... })
         self.assertEqual(results.status_code, 200)
 
+
 class TestSpendingAccount(uniitest.TestCase):
     """Test API calls for spending accounts.""" 
 
@@ -123,13 +126,15 @@ class TestSpendingAccount(uniitest.TestCase):
         nickname = "my spending account"
 
         results = self.app.post(f'/v1/users/{user_id}/spending',
-                                data={})
+                                data={"type": type_, 
+                                      "nickname": nickname})
         self.assertEqual(results.status_code, 200)
 
     def test_view_spending_account_200(self): 
         """GET spending account.""" 
         
         user_id = '12334556'
+        node_id = '12344556'
         results = self.app.get(f'/v1/users/{user_id}/spending/{node_id}')
         self.assertEqual(results.status_code, 200)
 
@@ -151,6 +156,7 @@ class TestSpendingAccount(uniitest.TestCase):
                                 data={})
         self.assertEqual(results.status_code, 200)
 
+
 class TestSavingsAccount(uniitest.TestCase):
     """Test API calls for spending accounts.""" 
 
@@ -164,9 +170,9 @@ class TestSavingsAccount(uniitest.TestCase):
         """POST new spending account."""
         
         type_ = "DEPOSIT-US"
-        nickname = "my spending account"
+        nickname = "my savings account"
 
-        results = self.app.post(f'/v1/users/{user_id}/spending',
+        results = self.app.post(f'/v1/users/{user_id}/savings',
                                 data={})
         self.assertEqual(results.status_code, 200)
     
@@ -174,7 +180,8 @@ class TestSavingsAccount(uniitest.TestCase):
         """GET spending account.""" 
         
         user_id = '12334556'
-        results = self.app.get(f'/v1/users/{user_id}/spending/{node_id}')
+        node_id = '123345566'
+        results = self.app.get(f'/v1/users/{user_id}/savings/{node_id}')
         self.assertEqual(results.status_code, 200)
     
     def test_savings_account_transaction_200(self):
@@ -188,12 +195,13 @@ class TestSavingsAccount(uniitest.TestCase):
         amount = reuqest.json["amount"]
         amount_currency = request.json["currency"]
         ip = request.json["ip"]
-        note = request.json["note"]
+        note = request.json["note"]   # change these 
 
-        results = self.app.post(f'/v1/users/{user_id}/spending/{node_id}/trans',
+        results = self.app.post(f'/v1/users/{user_id}/savings/{node_id}/trans',
                                 data={})
         self.assertEqual(results.status_code, 200) 
-    
+
+
 class TestNewCard(unittest.TestCase): 
     """Test API calls for opening a new card""" 
 
@@ -204,28 +212,61 @@ class TestNewCard(unittest.TestCase):
     
     def test_create_card_number(self):
         """POST new card number."""
-        pass 
-    
+        
+        nickname = request.json["nickname"]
+        account_class = request.json["account_class"]
+ 
     def test_update_card_status(self):
         """PUT card status."""
-        pass 
-    
+
+        user_id = '1234566' 
+        node_id =  '1234456'
+        card_id = '123345'
+
+        status = request.json["status"]
+        allow_foreign_transactions = request.json["allow_foreign_transactions"]
+        daily_atm_withdrawal = request.json["daily_atm_withdrawal"]
+        daily_transaction_limit = request.json["daily_transaction_limit"]
+
+        results = self.app.put(f'/v1/users/{user_id}/spending/{node_id}/cards/<{card_id}')
+        self.assertEqual(results.status_code, 200) 
+
+
     def test_update_card_pin(self);
         """Update user card pin.""" 
-        pass 
-    
+        
+        user_id = 
+        node_id = 
+
+        card_pin = request.json["card_pin"] 
+
+        results = self.app.patch(f'/v1/users/{user_id}/spending/{node_id}/cards/<{card_id}')
+        self.assertEqual(results.status_code, 200) 
+
     def test_view_user_card(self):
         """GET user card."""
-        pass 
+        
+        user_id = '12334556'
+        results = self.app.get(f'/v1/users/{user_id}/spending/{node_id}/cards/{card_id}')
+        self.assertEqual(results.status_code, 200)
 
     def test_send_user_card(self):
         """POST a new card status to send card."""
-        pass 
+        
+        fee_node_id = request.json["fee_node_id"]
+        expedite = request.json["expedite"]
+        card_style_id = request.json["card_style_id"]
+        cardholder_name = request.json["cardholder_name"]
 
+        results = self.app.post(f'/v1/users/{user_id}/spending/{node_id}/cards/{card_id}/send')
+        self.assertEqual(results.status_code, 200)
 
     def test_delete_card(self): 
         """DELETE user card."""
-        pass 
+        
+        status = request.json["status"]
+        results = self.app.post(f'/v1/users/{user_id}/spending/{node_id}/cards/{card_id}/send')
+        self.assertEqual(results.status_code, 200)
 
 
 class TestTransactions(unittest.TestCase): 
@@ -233,6 +274,7 @@ class TestTransactions(unittest.TestCase):
 
     def setUp(self): 
         """Set up elements before every test."""
+
         self.app = app.test_client()
         self.app.testing = True 
 
@@ -240,6 +282,7 @@ class TestTransactions(unittest.TestCase):
         """GET all transactions for a user."""
        
         user_id = '12334556'
+
         results = self.app.get(f'/v1/users/{user_id}/trans')
         self.assertEqual(results.status_code, 200)
     
@@ -248,6 +291,7 @@ class TestTransactions(unittest.TestCase):
         
         user_id = '12334556'
         node_id = '123445667'
+
         results = self.app.get(f'/v1/users/{user_id}/nodes/{node_id}/trans')
         self.assertEqual(results.status_code, 200)
     
