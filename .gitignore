@@ -1,3 +1,4 @@
 env/
 secrets.sh
 SynapsePy/
+__pycache__

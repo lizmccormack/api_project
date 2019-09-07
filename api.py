@@ -1,7 +1,7 @@
 from flask import (Flask, jsonify, request)
 from flask_pymongo import PyMongo 
 from pymongo import MongoClient
-from bson import Binary, Code
+from bson import Binary, Code, ObjectId 
 from bson.json_util import dumps
 import json 
 import os
@@ -63,15 +63,15 @@ def create_user():
     }
 
     new_user_synapse = client.create_user(body, ip=os.environ['IP_ADDRESS'], fingerprint=os.environ['FINGERPRINT'])
-    new_user = db.synapse_db.users.insert({
+    new_user = db.synapse_db.users.insert_one({
         'user_id': new_user_synapse.id,
         'email': email, 
-        "phone_numbers": phone_numbers, 
-        "legal_names": legal_names
+        'phone_numbers': phone_numbers, 
+        'legal_names': legal_names
         })
-
-    new_user = db.synapse_db.users.find_one({'user_id': new_user.id})
-    output = json.dumps(new_user)
+   
+    new_user = db.synapse_db.users.find_one({'user_id': new_user_synapse.id})
+    output = dumps(new_user)
 
     return jsonify(dumps({'result': output}))
 
@@ -256,7 +256,7 @@ def fund_withdraw_spending_account(user_id, node_id):
         response = json.dumps(user_spending_trans)
         db.synapse_db.spending_trans.insert(response)
     
-    else 
+    else: 
         response = {
             "status_code": 404
         }
@@ -426,7 +426,7 @@ def update_card_pin(user_id, node_id, card_id):
 def view_card(user_id, node_id, card_id): 
     """View card."""
 
-        user = client.get_user(user_id)
+    user = client.get_user(user_id)
     
     if user: 
 
