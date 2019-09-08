@@ -19,7 +19,7 @@ client = Client(
 app = Flask(__name__)
 
 db_client = MongoClient('mongodb://localhost:27017/')
-db = db_client['synapse_db']
+db = db_client['test_db']
 
 
 # Users 
@@ -104,9 +104,9 @@ def link_bank_accounts(user_id):
     """Add a node to link a bank account."""
     
     type_ = request.json['type']
-    bank_id = request.json['bank_id']
-    bank_pw= request.json['bank_pw']
-    bank_name = request.json['bank_name']
+    bank_id = request.json['info']['bank_id']
+    bank_pw= request.json['info']['bank_pw']
+    bank_name = request.json['info']['bank_name']
 
     body = {
         "type": type_,
@@ -121,15 +121,19 @@ def link_bank_accounts(user_id):
 
     if user: 
         node = user.create_node(body)
-        response = json.dumps(node)
-        db.synapse_db.links.insert(response) 
+        db.synapse_db.links.insert_one({
+            "node_id": node.id, 
+            "type": node.type,
+            "bank_id": node.bank_id,
+            "bank_pw": node.bank_pw,
+            "bank_name": node.bank_name
+        }) 
     
     else: 
         
         response = {
             'status_code': 404 
         }
-        s
     return jsonify(dumps({"result": response}))
 
 
@@ -186,9 +190,17 @@ def open_spending_account(user_id):
     
     type_ = request.json["type"]
     nickname = request.json["nickname"]
-    document_id = request.json["document_id"]
+    document_id =request.json["document_id"]
 
     user = client.get_user(user_id)
+
+    body = {
+        "type": type_,
+        "info": {
+            "nickname": nickname,
+            "document_id": document_id
+       }
+    }
 
     if user: 
 
@@ -227,11 +239,11 @@ def fund_withdraw_spending_account(user_id, node_id):
     """Funds or withdraws from deposit account.""" 
 
     to_type = request.json['type']
-    to_id = request.json["id"]
-    amount = reuqest.json["amount"]
-    amount_currency = request.json["currency"]
-    ip = request.json["ip"]
-    note = request.json["note"]
+    to_id = request.json['id']
+    amount = reuqest.json['amount']
+    amount_currency = request.json['currency']
+    ip = request.json['ip']
+    note = request.json['note']
 
     body = {
         "to": {
