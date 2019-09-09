@@ -407,33 +407,6 @@ def update_card_status(user_id, node_id, card_id):
 
     return jsonfiy(dumps({"result": response}))
 
-@app.route('/v1/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['PATCH'])
-def update_card_pin(user_id, node_id, card_id):
-    """Set the card pin."""
-    
-    card_pin = request.json["card_pin"]  
-
-    body = {
-        "card_pin": card_pin
-    }
-
-    user = client.get_user(user_id) 
-
-    if user: 
-
-        user_pin_update = user.update_subnet(node_id, subnet_id, body)
-        response = json.dumps(user_pin_update)
-        db.synapse_db.new_cards.update(response) 
-    
-    else: 
-        
-        response = {
-            "status_code": 404
-        }
-
-
-    return jsonfiy(dumps({"result": response}))
-
 @app.route('/v1/users/<user_id>/spending/<node_id>/cards/<card_id>', methods=['GET'])
 def view_card(user_id, node_id, card_id): 
     """View card."""

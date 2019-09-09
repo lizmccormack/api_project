@@ -8,16 +8,11 @@ from json import dumps
 from pymongo import MongoClient 
 from flask import (Flask, jsonify, request)
 
-# db_client = MongoClient('mongodb://localhost:27017/')
-# db = db_client['test_db']
-
-# def connect_to_db(app, db_uri="mongodb://localhost:27017/"):
-#     """Connect the database to flask app"""
-#     db_client = MongoClient(db_uri)
-#     db = db_client.test_db
-#     db.app = app
 
 USER_ID = '5d7469c87da8972d7d7d343d'
+NODE_ID_AHS = ''
+NODE_ID_SPENDING = 
+NODE_ID_SAVINGS = 
 
 class TestUser(unittest.TestCase): 
     """Test API calls for user."""
@@ -27,9 +22,6 @@ class TestUser(unittest.TestCase):
 
         self.app = app.test_client()
         app.config['TESTING'] = True 
-
-        #connect_to_db(app, 'mongodb://localhost:27017/test_db')
-
     
     def test_create_user_200(self): 
         """POST new user."""
@@ -92,7 +84,7 @@ class TestLinkAccounts(unittest.TestCase):
         """GET linked bank account."""
 
         user_id = '5d7426b6b8b7ac0076704acc'
-        node_id = '12344' # change these 
+        node_id = '5ade26b4567a900029e2afd2' # change these 
 
         results = self.app.get(f'/v1/users/{user_id}/links/{node_id}')
         self.assertEqual(results.status_code, 200)
@@ -101,7 +93,7 @@ class TestLinkAccounts(unittest.TestCase):
         """POST transaction to linked bank account."""
 
         user_id = '5d7426b6b8b7ac0076704acc'
-        node_id = '1234543234'
+        node_id = '5ade26b4567a900029e2afd2'
 
         to_type = 'ACH-US'
         to_id = 'asdfasdfsdf'
@@ -125,27 +117,24 @@ class TestSpendingAccount(unittest.TestCase):
         """Set up elements before every test."""
 
         self.app = app.test_client()
-        self.app.testing = True 
+        self.app['TESTING'] = True 
 
     def test_open_spending_account_200(self): 
         """POST new spending account.""" 
 
-        user_id = '5d7426b6b8b7ac0076704acc'
+        user_id = USER_ID
 
         type_ = "DEPOSIT-US"
         nickname = "my spending account"
-        document_id = "2a4a5957a3a62aaac1a0dd0edcae96ea2cdee688ec6337b20745eed8869e3ac8"
-
         results = self.app.post(f'/v1/users/{user_id}/spending',
                                 data={"type": type_, 
-                                      "nickname": nickname,
-                                      "document_id": document_id})
+                                      "nickname": nickname})
         self.assertEqual(results.status_code, 200)
 
     def test_view_spending_account_200(self): 
         """GET spending account.""" 
         
-        user_id = '5d7426b6b8b7ac0076704acc'
+        user_id = USER_ID
         node_id = '12344556'
 
         results = self.app.get(f'/v1/users/{user_id}/spending/{node_id}')
@@ -154,10 +143,10 @@ class TestSpendingAccount(unittest.TestCase):
     def test_spending_account_transaction_200(self):
         """POST changes to spending account, fund or withdraw."""  
 
-        user_id = '5d7426b6b8b7ac0076704acc'
-        node_id = '123445566'
+        user_id = USER_ID
+        node_id = '5ade26b4567a900029e2afd2'
 
-        to_type = "IB-DEPOSIT-US",
+        to_type = "DEPOSIT-US",
         to_id = '12334567777'
         amount = 375.21
         amount_currency = "USD"
@@ -181,14 +170,14 @@ class TestSavingsAccount(unittest.TestCase):
         """Set up elements before every test."""
         
         self.app = app.test_client()
-        self.app.testing = True 
+        self.app['TESTING'] = True
 
     def test_open_savings_account_200(self): 
         """POST new spending account."""
         
-        user_id = 'asdfdsaf'
+        user_id = USER_ID
 
-        type_ = "DEPOSIT-US"
+        type_ = "IB-DEPOSIT-US"
         nickname = "my savings account"
 
         results = self.app.post(f'/v1/users/{user_id}/savings',
@@ -199,7 +188,7 @@ class TestSavingsAccount(unittest.TestCase):
     def test_view_savings_account_200(self): 
         """GET spending account.""" 
         
-        user_id = '12334556'
+        user_id = USER_ID
         node_id = '123345566'
         results = self.app.get(f'/v1/users/{user_id}/savings/{node_id}')
         self.assertEqual(results.status_code, 200)
@@ -207,7 +196,7 @@ class TestSavingsAccount(unittest.TestCase):
     def test_savings_account_transaction_200(self):
         """POST changes to spending account, fund or withdraw."""
         
-        user_id = '123445'
+        user_id = USER_ID
         node_id = '123445566'
 
         to_type = "IB-DEPOSIT-US"
@@ -254,18 +243,6 @@ class TestNewCard(unittest.TestCase):
         daily_transaction_limit = request.json["daily_transaction_limit"]
 
         results = self.app.put(f'/v1/users/{user_id}/spending/{node_id}/cards/<{card_id}')
-        self.assertEqual(results.status_code, 200) 
-
-
-    def test_update_card_pin(self):
-        """Update user card pin.""" 
-        
-        # user_id = 
-        # node_id = 
-
-        card_pin = request.json["card_pin"] 
-
-        results = self.app.patch(f'/v1/users/{user_id}/spending/{node_id}/cards/<{card_id}')
         self.assertEqual(results.status_code, 200) 
 
     def test_view_user_card(self):
