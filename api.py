@@ -4,6 +4,7 @@ from pymongo import MongoClient
 from bson import Binary, Code, ObjectId 
 from bson.json_util import dumps
 import json 
+import pickle
 import os
 from synapsepy import Client
 
@@ -45,7 +46,9 @@ def create_user():
     """Create a new user."""
 
     email = request.json['email']
+    print(email)
     phone_numbers = request.json['phone_numbers']
+    print(phone_numbers)
     legal_names = request.json['legal_names']
 
     body = {
@@ -160,11 +163,11 @@ def view_bank_account(user_id, node_id):
 def create_transaction(user_id, node_id):
     """Create a new transaction."""
     
-    to_type = request.json["to_type"]
-    to_id = request.json["to_id"]
-    amount = request.json["amount"]
-    amount_currency = request.json["currency"]
-    ip = request.json["ip"]
+    to_type = request.json['to_type']
+    to_id = request.json['to_id']
+    amount = request.json['amount']
+    amount_currency = request.json['currency']
+    ip = request.json['ip']
 
     user = client.get_user(user_id)
 
@@ -490,7 +493,7 @@ def view_user_transactions(user_id):
     if user: 
 
         transactions = user.get_all_trans()
-        response = json.dumps(transactions)
+        response = pickle.dumps(transactions)
     
     else: 
 
@@ -499,7 +502,7 @@ def view_user_transactions(user_id):
         }
 
 
-    return jsonfiy(dumps({"result": response})) 
+    return jsonify(dumps({"result": response})) 
 
 @app.route('/v1/users/<user_id>/nodes/<node_id>/trans')
 def view_account_transactions(user_id, node_id): 
@@ -510,7 +513,7 @@ def view_account_transactions(user_id, node_id):
     if user: 
 
         transactions = user.get_all_node_trans(node_id, page=4, per_page=10)
-        response = json.dumps(transactions)
+        response = pickle.dumps(transactions)
     
     else: 
 
@@ -519,7 +522,7 @@ def view_account_transactions(user_id, node_id):
         }
 
 
-    return jsonfiy(dumps({"result": response}))
+    return jsonify(dumps({"result": response}))
 
 
 # helper functions 

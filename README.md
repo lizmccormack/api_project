@@ -31,7 +31,6 @@ idea that everyone should be able to manage their money easily.
 
 * create new card number 
 * update card status - activate, deactivate, terminate 
-* update card pin 
 * view user card 
 * send user card 
 * delete user card 

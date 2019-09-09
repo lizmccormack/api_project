@@ -10,9 +10,10 @@ from flask import (Flask, jsonify, request)
 
 
 USER_ID = '5d7469c87da8972d7d7d343d'
-NODE_ID_AHS = ''
-NODE_ID_SPENDING = 
-NODE_ID_SAVINGS = 
+NODE_ID_AHS = '5ade26b4567a900029e2afd2'
+NODE_ID_SPENDING = '5ade26b4567a900029e2afd2'
+NODE_ID_SAVINGS = '5ade26b4567a900029e2afd2'
+# CARD_ID = 
 
 class TestUser(unittest.TestCase): 
     """Test API calls for user."""
@@ -25,15 +26,17 @@ class TestUser(unittest.TestCase):
     
     def test_create_user_200(self): 
         """POST new user."""
-
+        
+        headers = {'Content-Type': 'application/json'}
         email = "test@apitests.com"
         phone_numbers = "1234567890"
         legal_names = "Test User"
-        
+    
         results = self.app.post('/v1/users', 
                                 data={"email": email, 
                                       "phone_numbers": phone_numbers,
-                                      "legal_names": legal_names})
+                                      "legal_names": legal_names}, 
+                                headers=headers)
         
         self.assertEqual(results.status_code, 200)
     
@@ -64,7 +67,8 @@ class TestLinkAccounts(unittest.TestCase):
     def test_link_bank_accounts_200(self):
         """POST new linked bank account."""
 
-        user_id = '5d7426b6b8b7ac0076704acc'
+        user_id = USER_ID
+        headers = {'Content-Type': 'application/json'}
 
         type_ = "ACH-US"
         bank_id = "synapse_good"
@@ -76,15 +80,16 @@ class TestLinkAccounts(unittest.TestCase):
                                       'bank_id': bank_id,
                                       'bank_pw': bank_pw,
                                       'bank_name': bank_name
-                                      })
+                                      },
+                                headers=headers)
         
         self.assertEqual(results.status_code, 200)
 
     def test_view_bank_account_200(self): 
         """GET linked bank account."""
 
-        user_id = '5d7426b6b8b7ac0076704acc'
-        node_id = '5ade26b4567a900029e2afd2' # change these 
+        user_id = USER_ID
+        node_id = NODE_ID_AHS 
 
         results = self.app.get(f'/v1/users/{user_id}/links/{node_id}')
         self.assertEqual(results.status_code, 200)
@@ -92,8 +97,9 @@ class TestLinkAccounts(unittest.TestCase):
     def test_new_transaction_200(self):
         """POST transaction to linked bank account."""
 
-        user_id = '5d7426b6b8b7ac0076704acc'
-        node_id = '5ade26b4567a900029e2afd2'
+        user_id = USER_ID
+        node_id = NODE_ID_AHS
+        headers = {'Content-Type': 'application/json'}
 
         to_type = 'ACH-US'
         to_id = 'asdfasdfsdf'
@@ -106,7 +112,9 @@ class TestLinkAccounts(unittest.TestCase):
                                      'to_id': to_id,
                                      'amount': amount,
                                      'amount_currency': amount_currency,
-                                     'ip': ip})
+                                     'ip': ip},
+                                headers=headers)
+
         self.assertEqual(results.status_code, 200)
 
 
@@ -117,25 +125,27 @@ class TestSpendingAccount(unittest.TestCase):
         """Set up elements before every test."""
 
         self.app = app.test_client()
-        self.app['TESTING'] = True 
+        app.config['TESTING'] = True 
 
     def test_open_spending_account_200(self): 
         """POST new spending account.""" 
 
         user_id = USER_ID
+        headers = {'Content-Type': 'application/json'}
 
         type_ = "DEPOSIT-US"
         nickname = "my spending account"
         results = self.app.post(f'/v1/users/{user_id}/spending',
                                 data={"type": type_, 
-                                      "nickname": nickname})
+                                      "nickname": nickname},
+                                headers=headers)
         self.assertEqual(results.status_code, 200)
 
     def test_view_spending_account_200(self): 
         """GET spending account.""" 
         
         user_id = USER_ID
-        node_id = '12344556'
+        node_id = NODE_ID_SPENDING
 
         results = self.app.get(f'/v1/users/{user_id}/spending/{node_id}')
         self.assertEqual(results.status_code, 200)
@@ -144,9 +154,10 @@ class TestSpendingAccount(unittest.TestCase):
         """POST changes to spending account, fund or withdraw."""  
 
         user_id = USER_ID
-        node_id = '5ade26b4567a900029e2afd2'
+        node_id = NODE_ID_SPENDING
+        headers = {'Content-Type': 'application/json'}
 
-        to_type = "DEPOSIT-US",
+        to_type = 'DEPOSIT-US',
         to_id = '12334567777'
         amount = 375.21
         amount_currency = "USD"
@@ -159,7 +170,9 @@ class TestSpendingAccount(unittest.TestCase):
                                      'amount': amount, 
                                      'currency': amount_currency,
                                      'ip': ip,
-                                     'note': note})
+                                     'note': note},
+                                headers=headers)
+
         self.assertEqual(results.status_code, 200)
 
 
@@ -170,26 +183,29 @@ class TestSavingsAccount(unittest.TestCase):
         """Set up elements before every test."""
         
         self.app = app.test_client()
-        self.app['TESTING'] = True
+        app.config['TESTING'] = True 
 
     def test_open_savings_account_200(self): 
         """POST new spending account."""
         
         user_id = USER_ID
+        headers = {'Content-Type': 'application/json'}
 
         type_ = "IB-DEPOSIT-US"
         nickname = "my savings account"
 
         results = self.app.post(f'/v1/users/{user_id}/savings',
                                 data={'type': type_, 
-                                      'nickname': nickname})
+                                      'nickname': nickname},
+                                headers=headers)
+
         self.assertEqual(results.status_code, 200)
     
     def test_view_savings_account_200(self): 
         """GET spending account.""" 
         
         user_id = USER_ID
-        node_id = '123345566'
+        node_id = NODE_ID_SAVINGS
         results = self.app.get(f'/v1/users/{user_id}/savings/{node_id}')
         self.assertEqual(results.status_code, 200)
     
@@ -197,7 +213,8 @@ class TestSavingsAccount(unittest.TestCase):
         """POST changes to spending account, fund or withdraw."""
         
         user_id = USER_ID
-        node_id = '123445566'
+        node_id = NODE_ID_SAVINGS
+        headers = {'Content-Type': 'application/json'}
 
         to_type = "IB-DEPOSIT-US"
         to_id = '123445566'
@@ -212,7 +229,9 @@ class TestSavingsAccount(unittest.TestCase):
                                      'amount': amount,
                                      'currency': amount_currency,
                                      'ip': ip, 
-                                     'note': note})
+                                     'note': note},
+                                headers=headers)
+
         self.assertEqual(results.status_code, 200) 
 
 
@@ -222,52 +241,81 @@ class TestNewCard(unittest.TestCase):
     def setUp(self): 
         """Set up elements before every test."""
         self.app = app.test_client()
-        self.app.testing = True 
+        app.config['TESTING'] = True 
     
-    def test_create_card_number(self):
-        """POST new card number."""
+    def test_create_card(self):
+        """POST new card."""
+
+        user_id = USER_ID
+        node_id = NODE_ID_SPENDING
+        card_id = CARD_ID
+        headers = {'Content-Type': 'application/json'}
         
-        nickname = request.json["nickname"]
-        account_class = request.json["account_class"]
+        nickname = "My debit card"
+        account_class = "DEBIT_CARD"
+
+        results = self.app.post(f'/v1/users/{user_id}/spending/{node_id}/cards',
+                                data={'nickname' : nickname,
+                                      'account_class' : account_class},
+                                headers=headers)
  
     def test_update_card_status(self):
         """PUT card status."""
 
-        user_id = '1234566' 
-        node_id =  '1234456'
-        card_id = '123345'
+        user_id = USER_ID 
+        node_id =  NODE_ID_SPENDING
+        card_id = CARD_ID
+        headers = {'Content-Type': 'application/json'}
 
-        status = request.json["status"]
-        allow_foreign_transactions = request.json["allow_foreign_transactions"]
-        daily_atm_withdrawal = request.json["daily_atm_withdrawal"]
-        daily_transaction_limit = request.json["daily_transaction_limit"]
+        status = "ACTIVE"
 
-        results = self.app.put(f'/v1/users/{user_id}/spending/{node_id}/cards/<{card_id}')
+        results = self.app.put(f'/v1/users/{user_id}/spending/{node_id}/cards/<{card_id}',
+                               data={'status' : status},
+                               headers=headers)
+
         self.assertEqual(results.status_code, 200) 
 
     def test_view_user_card(self):
         """GET user card."""
         
-        user_id = '12334556'
+        user_id = USER_ID
+
         results = self.app.get(f'/v1/users/{user_id}/spending/{node_id}/cards/{card_id}')
         self.assertEqual(results.status_code, 200)
 
     def test_send_user_card(self):
         """POST a new card status to send card."""
-        
-        fee_node_id = request.json["fee_node_id"]
-        expedite = request.json["expedite"]
-        card_style_id = request.json["card_style_id"]
-        cardholder_name = request.json["cardholder_name"]
 
-        results = self.app.post(f'/v1/users/{user_id}/spending/{node_id}/cards/{card_id}/send')
+        user_id = USER_ID
+        node_id = NODE_ID_SPENDING
+        card_id = CARD_ID
+        headers = {'Content-Type': 'application/json'}
+        
+        fee_node_id = "5bba781485411800991b606b"
+        expedite = False
+        card_style_id = "555"
+        cardholder_name = "Test User"
+
+        results = self.app.post(f'/v1/users/{user_id}/spending/{node_id}/cards/{card_id}/send',
+                                data={'fee_node_id' : fee_node_id,
+                                      'expedite' : expedite,
+                                      'card_style_id' : card_style_id,
+                                      'cardholder_name' : cardholder_name},
+                                headers=headers)
+
         self.assertEqual(results.status_code, 200)
 
     def test_delete_card(self): 
         """DELETE user card."""
+
+        USER_ID = USER_ID 
+        NODE_ID = NODE_ID_SPENDING
+        headers = {'Content-Type': 'application/json'}
         
-        status = request.json["status"]
-        results = self.app.post(f'/v1/users/{user_id}/spending/{node_id}/cards/{card_id}/send')
+        status = "TERMINATED"
+        results = self.app.post(f'/v1/users/{user_id}/spending/{node_id}/cards/{card_id}/send',
+                                data={'status' : status})
+
         self.assertEqual(results.status_code, 200)
 
 
@@ -278,12 +326,12 @@ class TestTransactions(unittest.TestCase):
         """Set up elements before every test."""
 
         self.app = app.test_client()
-        self.app.testing = True 
+        app.config['TESTING'] = True 
 
     def test_view_user_transactions_200(self): 
         """GET all transactions for a user."""
        
-        user_id = '12334556'
+        user_id = USER_ID
 
         results = self.app.get(f'/v1/users/{user_id}/trans')
         self.assertEqual(results.status_code, 200)
@@ -291,8 +339,8 @@ class TestTransactions(unittest.TestCase):
     def test_view_account_transactions_200(self):
         """GET all transactions for an account."""
         
-        user_id = '12334556'
-        node_id = '123445667'
+        user_id = USER_ID
+        node_id = NODE_ID_SPENDING
 
         results = self.app.get(f'/v1/users/{user_id}/nodes/{node_id}/trans')
         self.assertEqual(results.status_code, 200)
